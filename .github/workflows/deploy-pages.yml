@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PAGES: 'true'
+      VITE_API_URL: 'https://portal-imoveis.up.railway.app'
     defaults:
       run:
         working-directory: frontend
