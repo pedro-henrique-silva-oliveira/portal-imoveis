@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 import schemas
 from auth import autenticar_admin, criar_token, get_current_admin
-from config import ADMIN_PASSWORD, ADMIN_PASSWORD_HASH, CORS_ORIGINS
+from config import ADMIN_PASSWORD, ADMIN_PASSWORD_HASH, CORS_ORIGINS, CORS_ORIGIN_REGEX
 from database import Base, engine, get_db
 from models import Lead, Property
 
@@ -41,6 +41,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
