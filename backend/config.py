@@ -29,7 +29,7 @@ ADMIN_PASSWORD_HASH = os.getenv("ADMIN_PASSWORD_HASH", "")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 
 CORS_ORIGINS = [
-    origem.strip()
+    origem.strip().rstrip("/").lower()
     for origem in _get_env(
         "CORS_ORIGINS",
         "http://localhost:5173,http://127.0.0.1:5173",
