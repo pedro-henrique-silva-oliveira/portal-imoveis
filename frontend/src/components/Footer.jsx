@@ -1,4 +1,5 @@
 import { Building2, Mail, Phone } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import {
   BRAND_NAME,
   CRECI,
@@ -47,19 +48,19 @@ export default function Footer() {
           </h3>
           <ul className="mt-3 space-y-2 text-sm text-slate-600">
             <li>
-              <a href="/?transacao=venda" className="hover:text-primary">
+              <Link to="/?transacao=venda" className="hover:text-primary">
                 Comprar
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="/?transacao=aluguel" className="hover:text-primary">
+              <Link to="/?transacao=aluguel" className="hover:text-primary">
                 Alugar
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="/admin/login" className="hover:text-primary">
+              <Link to="/admin/login" className="hover:text-primary">
                 Área do corretor
-              </a>
+              </Link>
             </li>
           </ul>
         </div>

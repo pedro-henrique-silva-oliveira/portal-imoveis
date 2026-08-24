@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Building2,
   ExternalLink,
@@ -35,6 +35,7 @@ function CardMetrica({ icone: Icone, rotulo, valor, cor }) {
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate()
   const {
     logout,
     listarTodosImoveis,
@@ -135,7 +136,7 @@ export default function AdminDashboard() {
               type="button"
               onClick={() => {
                 logout()
-                window.location.href = '/admin/login'
+                navigate('/admin/login', { replace: true })
               }}
               className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
             >
