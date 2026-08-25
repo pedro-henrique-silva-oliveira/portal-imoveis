@@ -2,10 +2,12 @@ import re
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 TIPOS_IMOVEL = {"casa", "apartamento", "terreno", "comercial"}
 TRANSACOES = {"venda", "aluguel"}
+
+STAGES_LEAD = ("novo", "em_contato", "visita_agendada", "proposta", "fechado", "perdido")
 
 
 class PropertyBase(BaseModel):
@@ -167,10 +169,65 @@ class LeadOut(BaseModel):
     email: str
     telefone: str
     mensagem: str
+    status: str = "novo"
     imovel_id: Optional[int]
     data_criacao: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class LeadStatusUpdate(BaseModel):
+    status: str
+
+    @field_validator("status")
+    @classmethod
+    def validar_status(cls, v: str) -> str:
+        v = (v or "").strip().lower()
+        if v not in STAGES_LEAD:
+            raise ValueError(f"status deve ser um de: {', '.join(STAGES_LEAD)}")
+        return v
+
+
+class DemandaCreate(BaseModel):
+    nome: str = Field(min_length=2, max_length=120)
+    telefone: str = Field(min_length=8, max_length=30)
+    email: Optional[str] = Field(default=None, max_length=160)
+    bairro: Optional[str] = Field(default=None, max_length=120)
+    cidade: Optional[str] = Field(default=None, max_length=120)
+    preco_min: Optional[float] = Field(default=None, ge=0)
+    preco_max: Optional[float] = Field(default=None, ge=0)
+    dormitorios: Optional[int] = Field(default=None, ge=1, le=20)
+    observacoes: Optional[str] = Field(default="", max_length=2000)
+
+    @field_validator("telefone")
+    @classmethod
+    def validar_telefone(cls, v: str) -> str:
+        digitos = re.sub(r"\D", "", v or "")
+        if not 8 <= len(digitos) <= 13:
+            raise ValueError("Telefone inválido.")
+        return v.strip()
+
+    @model_validator(mode="after")
+    def validar_faixa_preco(self):
+        if self.preco_min is not None and self.preco_max is not None:
+            if self.preco_min > self.preco_max:
+                raise ValueError("preco_min não pode ser maior que preco_max.")
+        return self
+
+
+class DemandaOut(DemandaCreate):
+    id: int
+    atendida: bool
+    data_criacao: datetime
+    email: Optional[str] = ""
+    bairro: Optional[str] = ""
+    cidade: Optional[str] = ""
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DemandaStatusUpdate(BaseModel):
+    atendida: bool
 
 
 class ConfiguracaoUpdate(BaseModel):

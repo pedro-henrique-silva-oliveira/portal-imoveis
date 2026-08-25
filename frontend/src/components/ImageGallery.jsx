@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Building2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { urlFoto } from '../utils/media'
 
-export default function ImageGallery({ fotos = [], titulo }) {
+export default function ImageGallery({ imovelId, fotos = [], titulo }) {
   const [indice, setIndice] = useState(0)
+  const src = (i) => urlFoto(imovelId, i)
 
   if (!fotos.length) {
     return (
@@ -19,7 +21,7 @@ export default function ImageGallery({ fotos = [], titulo }) {
     <div>
       <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-slate-100">
         <img
-          src={fotos[indice]}
+          src={src(indice)}
           alt={`${titulo} - foto ${indice + 1}`}
           className="h-full w-full object-cover"
         />
@@ -60,7 +62,7 @@ export default function ImageGallery({ fotos = [], titulo }) {
                 i === indice ? 'border-primary' : 'border-transparent opacity-70 hover:opacity-100'
               }`}
             >
-              <img src={foto} alt="" className="h-full w-full object-cover" />
+              <img src={src(i)} alt="" className="h-full w-full object-cover" />
             </button>
           ))}
         </div>

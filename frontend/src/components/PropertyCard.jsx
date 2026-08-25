@@ -10,11 +10,13 @@ import {
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { formatarBRL } from '../utils/format'
+import { urlFoto } from '../utils/media'
 
 export default function PropertyCard({ imovel }) {
   const { favoritos, alternarFavorito } = useApp()
   const ehFavorito = favoritos.includes(imovel.id)
-  const foto = imovel.fotos?.[0]
+  const temFoto = (imovel.fotos?.length || 0) > 0
+  const foto = temFoto ? urlFoto(imovel.id, 0) : null
 
   return (
     <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg">

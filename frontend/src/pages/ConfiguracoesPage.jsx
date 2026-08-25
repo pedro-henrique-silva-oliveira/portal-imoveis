@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, KeyRound, Loader2, Save } from 'lucide-react'
+import { CheckCircle2, Copy, KeyRound, Loader2, Rss, Save } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { extrairErro } from '../utils/format'
 
@@ -48,6 +48,14 @@ const campos = [
   },
 ]
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
+const FEEDS = [
+  { portal: 'VivaReal', url: `${API_BASE}/api/feed/vivareal.xml` },
+  { portal: 'ZAP', url: `${API_BASE}/api/feed/zap.xml` },
+  { portal: 'OLX', url: `${API_BASE}/api/feed/olx.xml` },
+]
+
 export default function ConfiguracoesPage() {
   const { config, salvarConfig, alterarSenha } = useApp()
   const [form, setForm] = useState({
@@ -65,6 +73,17 @@ export default function ConfiguracoesPage() {
   const [trocandoSenha, setTrocandoSenha] = useState(false)
   const [senhaOk, setSenhaOk] = useState('')
   const [erroSenha, setErroSenha] = useState('')
+  const [copiado, setCopiado] = useState('')
+
+  const copiarFeed = async (feed) => {
+    try {
+      await navigator.clipboard.writeText(feed.url)
+    } catch {
+      window.prompt('Copie a URL do feed:', feed.url)
+    }
+    setCopiado(feed.portal)
+    setTimeout(() => setCopiado(''), 2000)
+  }
 
   useEffect(() => {
     setForm({
@@ -234,6 +253,50 @@ export default function ConfiguracoesPage() {
               </button>
             </div>
           </form>
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="flex items-center gap-2 text-base font-bold text-slate-900">
+            <Rss size={18} className="text-primary" />
+            Feeds XML para portais (VivaReal, ZAP, OLX)
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Cole a URL correspondente no painel do portal para publicar seu
+            estoque automaticamente. As fotos já saem com marca d'água.
+          </p>
+          <ul className="mt-4 space-y-2">
+            {FEEDS.map((feed) => (
+              <li
+                key={feed.portal}
+                className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5"
+              >
+                <span className="w-20 flex-shrink-0 text-sm font-bold text-slate-700">
+                  {feed.portal}
+                </span>
+                <code className="min-w-0 flex-1 truncate rounded bg-white px-2 py-1 text-xs text-slate-600">
+                  {feed.url}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => copiarFeed(feed)}
+                  aria-label={`Copiar URL do feed ${feed.portal}`}
+                  className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-white"
+                >
+                  {copiado === feed.portal ? (
+                    <>
+                      <CheckCircle2 size={13} className="text-green-600" /> Copiado
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={13} /> Copiar
+                    </>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
     </>

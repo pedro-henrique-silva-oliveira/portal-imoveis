@@ -226,6 +226,43 @@ export function AppProvider({ children }) {
     [api],
   )
 
+  const alterarStatusLead = useCallback(
+    async (id, status) => {
+      const { data } = await api.put(`/api/admin/leads/${id}/status`, { status })
+      return data
+    },
+    [api],
+  )
+
+  const submeterDemanda = useCallback(
+    async (dados) => {
+      const { data } = await api.post('/api/demandas', dados)
+      return data
+    },
+    [api],
+  )
+
+  const listarDemandas = useCallback(async () => {
+    const { data } = await api.get('/api/admin/demandas')
+    return data
+  }, [api])
+
+  const alterarStatusDemanda = useCallback(
+    async (id, atendida) => {
+      const { data } = await api.put(`/api/admin/demandas/${id}/status`, { atendida })
+      return data
+    },
+    [api],
+  )
+
+  const excluirDemanda = useCallback(
+    async (id) => {
+      const { data } = await api.delete(`/api/admin/demandas/${id}`)
+      return data
+    },
+    [api],
+  )
+
   const salvarConfig = useCallback(
     async (valores) => {
       const { data } = await api.put('/api/admin/configuracoes', valores)
@@ -270,6 +307,11 @@ export function AppProvider({ children }) {
       buscarMetricas,
       buscarLeads,
       excluirLead,
+      alterarStatusLead,
+      submeterDemanda,
+      listarDemandas,
+      alterarStatusDemanda,
+      excluirDemanda,
       salvarConfig,
       alterarSenha,
     }),
@@ -299,6 +341,11 @@ export function AppProvider({ children }) {
       buscarMetricas,
       buscarLeads,
       excluirLead,
+      alterarStatusLead,
+      submeterDemanda,
+      listarDemandas,
+      alterarStatusDemanda,
+      excluirDemanda,
       salvarConfig,
       alterarSenha,
     ],

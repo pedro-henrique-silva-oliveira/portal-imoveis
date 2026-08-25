@@ -108,7 +108,7 @@ export default function PropertyDetails() {
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <ImageGallery fotos={imovel.fotos} titulo={imovel.titulo} />
+          <ImageGallery imovelId={imovel.id} fotos={imovel.fotos} titulo={imovel.titulo} />
 
           <div>
             <div className="flex flex-wrap items-center gap-2">

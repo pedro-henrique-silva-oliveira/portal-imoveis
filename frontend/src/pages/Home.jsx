@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import FilterBar from '../components/FilterBar'
+import FormDemanda from '../components/FormDemanda'
 import Loader from '../components/Loader'
 import Pagination from '../components/Pagination'
 import PropertyCard from '../components/PropertyCard'
@@ -158,6 +159,7 @@ export default function Home() {
             {!somenteFavoritos && <Pagination />}
           </>
         )}
+        <FormDemanda />
       </section>
     </>
   )

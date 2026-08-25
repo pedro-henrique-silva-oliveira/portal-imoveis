@@ -5,8 +5,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from sqlalchemy import func
+from fastapi.responses import JSONResponse, Response
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 import schemas
@@ -26,7 +26,9 @@ from config import (
     CORS_ORIGIN_REGEX,
 )
 from database import Base, engine, get_db
-from models import Configuracao, Lead, Property
+from feed_xml import gerar_feed_portais
+from imagens import foto_com_marca
+from models import Configuracao, Demanda, Lead, Property
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("portal-imobiliario")
@@ -35,6 +37,7 @@ logger = logging.getLogger("portal-imobiliario")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    _migrar_coluna_status_leads()
     semear_config_padrao()
     if not (ADMIN_PASSWORD_HASH or ADMIN_PASSWORD):
         logger.warning(
@@ -43,6 +46,18 @@ async def lifespan(app: FastAPI):
         )
     logger.info("Banco de dados inicializado.")
     yield
+
+
+def _migrar_coluna_status_leads() -> None:
+    """Adiciona a coluna status (mini-CRM) em bancos criados antes da feature."""
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text("ALTER TABLE leads ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'novo'")
+            )
+        logger.info("Coluna 'status' adicionada à tabela leads.")
+    except Exception:
+        pass  # coluna já existe
 
 
 def semear_config_padrao() -> None:
@@ -96,6 +111,57 @@ ORDENS = {
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+def _config_map(db: Session) -> dict:
+    valores = {**CONFIG_PADRAO}
+    for linha in db.query(Configuracao).all():
+        if linha.chave in CONFIG_PADRAO:
+            valores[linha.chave] = linha.valor
+    return valores
+
+
+@app.get("/api/imoveis/{imovel_id}/fotos/{indice:int}")
+def servir_foto(
+    imovel_id: int,
+    indice: int,
+    db: Session = Depends(get_db),
+):
+    """Serve a foto com marca d'água (nome + CRECI) aplicada dinamicamente."""
+    imovel = db.get(Property, imovel_id)
+    if not imovel:
+        raise HTTPException(status_code=404, detail="Imóvel não encontrado.")
+    fotos = imovel.fotos or []
+    if indice < 0 or indice >= len(fotos):
+        raise HTTPException(status_code=404, detail="Foto não encontrada.")
+
+    config = _config_map(db)
+    marca = f"{config['brand_name']} · {config['creci']}".strip(" ·")
+    conteudo = foto_com_marca(fotos[indice], marca)
+    if conteudo is None:
+        raise HTTPException(status_code=404, detail="Foto inválida.")
+
+    return Response(
+        content=conteudo,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
+@app.get("/api/feed/{portal}.xml")
+def feed_portais(portal: str, request: Request, db: Session = Depends(get_db)):
+    """Feed XML para portais externos: vivareal, zap ou olx."""
+    if portal not in ("vivareal", "zap", "olx"):
+        raise HTTPException(status_code=404, detail="Portal não suportado.")
+    imoveis = (
+        db.query(Property)
+        .order_by(Property.data_criacao.desc(), Property.id.desc())
+        .limit(200)
+        .all()
+    )
+    config = _config_map(db)
+    xml = gerar_feed_portais(imoveis, str(request.base_url), config, portal=portal)
+    return Response(content=xml, media_type="application/xml; charset=utf-8")
 
 
 @app.get("/api/config")
@@ -273,6 +339,7 @@ def metricas(
         .scalar()
         or 0,
         "leads": db.query(func.count(Lead.id)).scalar() or 0,
+        "demandas": db.query(func.count(Demanda.id)).scalar() or 0,
     }
 
 
@@ -295,6 +362,23 @@ def listar_leads(
     return db.query(Lead).order_by(Lead.data_criacao.desc()).all()
 
 
+@app.put("/api/admin/leads/{lead_id}/status", response_model=schemas.LeadOut)
+def alterar_status_lead(
+    lead_id: int,
+    dados: schemas.LeadStatusUpdate,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_current_admin),
+):
+    """Move o lead no funil do mini-CRM (kanban)."""
+    lead = db.get(Lead, lead_id)
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead não encontrado.")
+    lead.status = dados.status
+    db.commit()
+    db.refresh(lead)
+    return lead
+
+
 @app.delete("/api/admin/leads/{lead_id}")
 def excluir_lead(
     lead_id: int,
@@ -307,3 +391,54 @@ def excluir_lead(
     db.delete(lead)
     db.commit()
     return {"mensagem": "Lead excluído."}
+
+
+@app.post("/api/demandas", status_code=201)
+def criar_demanda(dados: schemas.DemandaCreate, db: Session = Depends(get_db)):
+    """Captura de demanda passiva: perfil do imóvel desejado pelo cliente."""
+    demanda = Demanda(**dados.model_dump())
+    db.add(demanda)
+    db.commit()
+    db.refresh(demanda)
+    return {
+        "id": demanda.id,
+        "mensagem": "Recebemos seu pedido! Vamos entrar em contato quando encontrarmos.",
+    }
+
+
+@app.get("/api/admin/demandas", response_model=list[schemas.DemandaOut])
+def listar_demandas(
+    db: Session = Depends(get_db),
+    _: str = Depends(get_current_admin),
+):
+    return db.query(Demanda).order_by(Demanda.data_criacao.desc()).all()
+
+
+@app.put("/api/admin/demandas/{demanda_id}/status", response_model=schemas.DemandaOut)
+def alterar_status_demanda(
+    demanda_id: int,
+    dados: schemas.DemandaStatusUpdate,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_current_admin),
+):
+    demanda = db.get(Demanda, demanda_id)
+    if not demanda:
+        raise HTTPException(status_code=404, detail="Demanda não encontrada.")
+    demanda.atendida = dados.atendida
+    db.commit()
+    db.refresh(demanda)
+    return demanda
+
+
+@app.delete("/api/admin/demandas/{demanda_id}")
+def excluir_demanda(
+    demanda_id: int,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_current_admin),
+):
+    demanda = db.get(Demanda, demanda_id)
+    if not demanda:
+        raise HTTPException(status_code=404, detail="Demanda não encontrada.")
+    db.delete(demanda)
+    db.commit()
+    return {"mensagem": "Demanda excluída."}

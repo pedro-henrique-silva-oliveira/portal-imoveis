@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Building2,
+  ClipboardList,
   ExternalLink,
   KeyRound,
   LogOut,
@@ -13,6 +14,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import AdminPropertyForm from '../components/AdminPropertyForm'
+import LeadsKanban from '../components/LeadsKanban'
 import Loader from '../components/Loader'
 import ConfiguracoesPage from './ConfiguracoesPage'
 import { useApp } from '../context/AppContext'
@@ -45,6 +47,10 @@ export default function AdminDashboard() {
     buscarMetricas,
     buscarLeads,
     excluirLead,
+    alterarStatusLead,
+    listarDemandas,
+    excluirDemanda,
+    alterarStatusDemanda,
     config,
   } = useApp()
 
@@ -52,6 +58,7 @@ export default function AdminDashboard() {
   const [metricas, setMetricas] = useState(null)
   const [imoveis, setImoveis] = useState([])
   const [leads, setLeads] = useState([])
+  const [demandas, setDemandas] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [formAberto, setFormAberto] = useState(false)
@@ -61,14 +68,16 @@ export default function AdminDashboard() {
     setCarregando(true)
     setErro('')
     try {
-      const [dadosMetricas, listaImoveis, listaLeads] = await Promise.all([
+      const [dadosMetricas, listaImoveis, listaLeads, listaDemandas] = await Promise.all([
         buscarMetricas(),
         listarTodosImoveis(),
         buscarLeads(),
+        listarDemandas(),
       ])
       setMetricas(dadosMetricas)
       setImoveis(listaImoveis)
       setLeads(listaLeads)
+      setDemandas(listaDemandas)
     } catch (e) {
       if (e?.response?.status === 401) {
         logout()
@@ -78,7 +87,7 @@ export default function AdminDashboard() {
     } finally {
       setCarregando(false)
     }
-  }, [buscarMetricas, listarTodosImoveis, buscarLeads, logout])
+  }, [buscarMetricas, listarTodosImoveis, buscarLeads, listarDemandas, logout])
 
   useEffect(() => {
     carregarDados()
@@ -109,8 +118,48 @@ export default function AdminDashboard() {
     if (!window.confirm(`Excluir o lead de ${lead.nome}?`)) return
     try {
       await excluirLead(lead.id)
-      await carregarDados()
+      setLeads((atual) => atual.filter((l) => l.id !== lead.id))
     } catch (e) {
+      alert(extrairErro(e))
+    }
+  }
+
+  const moverLead = async (lead, novoStatus) => {
+    const statusAnterior = lead.status
+    setLeads((atual) =>
+      atual.map((l) => (l.id === lead.id ? { ...l, status: novoStatus } : l)),
+    )
+    try {
+      await alterarStatusLead(lead.id, novoStatus)
+    } catch (e) {
+      setLeads((atual) =>
+        atual.map((l) => (l.id === lead.id ? { ...l, status: statusAnterior } : l)),
+      )
+      alert(extrairErro(e))
+    }
+  }
+
+  const removerDemanda = async (demanda) => {
+    if (!window.confirm(`Excluir a demanda de ${demanda.nome}?`)) return
+    try {
+      await excluirDemanda(demanda.id)
+      setDemandas((atual) => atual.filter((d) => d.id !== demanda.id))
+    } catch (e) {
+      alert(extrairErro(e))
+    }
+  }
+
+  const alternarAtendida = async (demanda) => {
+    const novoValor = !demanda.atendida
+    setDemandas((atual) =>
+      atual.map((d) => (d.id === demanda.id ? { ...d, atendida: novoValor } : d)),
+    )
+    try {
+      await alterarStatusDemanda(demanda.id, novoValor)
+    } catch (e) {
+      setDemandas((atual) =>
+        atual.map((d) => (d.id === demanda.id ? { ...d, atendida: !novoValor } : d)),
+      )
       alert(extrairErro(e))
     }
   }
@@ -160,17 +209,19 @@ export default function AdminDashboard() {
           <Loader texto="Carregando painel..." />
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
               <CardMetrica icone={Building2} rotulo="Total de imóveis" valor={metricas.total_imoveis} cor="bg-primary" />
               <CardMetrica icone={Tag} rotulo="Para venda" valor={metricas.venda} cor="bg-green-600" />
               <CardMetrica icone={KeyRound} rotulo="Para locação" valor={metricas.aluguel} cor="bg-secondary" />
               <CardMetrica icone={Mail} rotulo="Leads recebidos" valor={metricas.leads} cor="bg-slate-600" />
+              <CardMetrica icone={ClipboardList} rotulo="Demandas de busca" valor={demandas.length} cor="bg-amber-500" />
             </div>
 
             <div className="mt-8 flex gap-2">
               {[
                 { id: 'imoveis', label: 'Imóveis' },
-                { id: 'leads', label: `Leads (${leads.length})` },
+                { id: 'leads', label: `CRM de Leads (${leads.length})` },
+                { id: 'demandas', label: `Demandas (${demandas.length})` },
                 { id: 'config', label: 'Configurações' },
               ].map((item) => (
                 <button
@@ -293,66 +344,95 @@ export default function AdminDashboard() {
             )}
 
             {aba === 'leads' && (
+              <section className="mt-6">
+                <p className="text-sm text-slate-500">
+                  Arraste os cards entre as colunas (ou use as setas) para
+                  acompanhar cada cliente no funil de vendas.
+                </p>
+                <LeadsKanban leads={leads} aoMudarStatus={moverLead} aoExcluir={removerLead} />
+                {leads.length === 0 && (
+                  <div className="rounded-xl border border-slate-200 bg-white py-10 text-center shadow-sm">
+                    <p className="text-sm text-slate-500">Nenhum lead recebido ainda.</p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Os contatos do formulário "Tenho interesse" aparecem aqui.
+                    </p>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {aba === 'demandas' && (
               <section className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-                <table className="w-full min-w-[760px] text-left text-sm">
+                <table className="w-full min-w-[860px] text-left text-sm">
                   <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-4 py-3">Cliente</th>
                       <th className="px-4 py-3">Contato</th>
-                      <th className="px-4 py-3">Interesse</th>
-                      <th className="px-4 py-3">Mensagem</th>
-                      <th className="px-4 py-3">Data</th>
+                      <th className="px-4 py-3">Perfil desejado</th>
+                      <th className="px-4 py-3">Detalhes</th>
+                      <th className="px-4 py-3">Recebido</th>
+                      <th className="px-4 py-3 text-center">Atendida</th>
                       <th className="px-4 py-3 text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {leads.map((lead) => {
-                      const imovel = imoveis.find((i) => i.id === lead.imovel_id)
-                      return (
-                        <tr key={lead.id} className="align-top hover:bg-slate-50">
-                          <td className="px-4 py-3 font-medium">{lead.nome}</td>
-                          <td className="px-4 py-3 text-slate-600">
-                            <p>{lead.email}</p>
-                            <p>{lead.telefone}</p>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">
-                            {imovel ? (
-                              <Link to={`/imovel/${imovel.id}`} target="_blank" className="text-primary hover:underline">
-                                #{imovel.id} - {imovel.titulo}
-                              </Link>
-                            ) : (
-                              'Contato geral'
-                            )}
-                          </td>
-                          <td className="max-w-xs px-4 py-3 text-slate-600">
-                            <p className="line-clamp-3" title={lead.mensagem}>
-                              {lead.mensagem || '-'}
-                            </p>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-slate-500">
-                            {formatarData(lead.data_criacao)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex justify-end">
-                              <button
-                                type="button"
-                                onClick={() => removerLead(lead)}
-                                aria-label="Excluir lead"
-                                className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                    {demandas.map((demanda) => (
+                      <tr key={demanda.id} className={`align-top hover:bg-slate-50 ${demanda.atendida ? 'opacity-60' : ''}`}>
+                        <td className="px-4 py-3 font-medium">{demanda.nome}</td>
+                        <td className="px-4 py-3 text-slate-600">
+                          <p>{demanda.telefone}</p>
+                          {demanda.email && <p>{demanda.email}</p>}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          <p>
+                            {[demanda.bairro, demanda.cidade].filter(Boolean).join(', ') || 'Qualquer região'}
+                          </p>
+                          <p className="text-xs">
+                            {[
+                              demanda.dormitorios ? `${demanda.dormitorios}+ dorm.` : null,
+                              demanda.preco_min || demanda.preco_max
+                                ? `R$ ${Number(demanda.preco_min || 0).toLocaleString('pt-BR')} - ${Number(demanda.preco_max || 0).toLocaleString('pt-BR')}`
+                                : null,
+                            ].filter(Boolean).join(' · ') || 'Sem restrições'}
+                          </p>
+                        </td>
+                        <td className="max-w-xs px-4 py-3 text-slate-600">
+                          <p className="line-clamp-2" title={demanda.observacoes}>
+                            {demanda.observacoes || '-'}
+                          </p>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-500">
+                          {formatarData(demanda.data_criacao)}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={!!demanda.atendida}
+                            onChange={() => alternarAtendida(demanda)}
+                            aria-label={`Marcar demanda de ${demanda.nome} como atendida`}
+                            className="h-5 w-5 cursor-pointer accent-green-600"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => removerDemanda(demanda)}
+                              aria-label="Excluir demanda"
+                              className="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
 
-                {leads.length === 0 && (
+                {demandas.length === 0 && (
                   <p className="py-10 text-center text-sm text-slate-500">
-                    Nenhum lead recebido ainda.
+                    Nenhuma demanda de busca recebida ainda.
                   </p>
                 )}
               </section>
