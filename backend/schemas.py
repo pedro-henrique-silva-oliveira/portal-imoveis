@@ -140,6 +140,11 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class AlterarSenhaRequest(BaseModel):
+    senha_atual: str = Field(min_length=1, max_length=200)
+    nova_senha: str = Field(min_length=6, max_length=100)
+
+
 class LeadCreate(BaseModel):
     nome: str = Field(min_length=2, max_length=120)
     email: EmailStr

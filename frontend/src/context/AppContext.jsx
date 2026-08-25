@@ -235,6 +235,14 @@ export function AppProvider({ children }) {
     [api],
   )
 
+  const alterarSenha = useCallback(
+    async (senha_atual, nova_senha) => {
+      const { data } = await api.put('/api/admin/senha', { senha_atual, nova_senha })
+      return data
+    },
+    [api],
+  )
+
   const valor = useMemo(
     () => ({
       itens,
@@ -263,6 +271,7 @@ export function AppProvider({ children }) {
       buscarLeads,
       excluirLead,
       salvarConfig,
+      alterarSenha,
     }),
     [
       itens,
@@ -291,6 +300,7 @@ export function AppProvider({ children }) {
       buscarLeads,
       excluirLead,
       salvarConfig,
+      alterarSenha,
     ],
   )
 

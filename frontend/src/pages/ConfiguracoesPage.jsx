@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, Loader2, Save } from 'lucide-react'
+import { CheckCircle2, KeyRound, Loader2, Save } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { extrairErro } from '../utils/format'
 
@@ -49,7 +49,7 @@ const campos = [
 ]
 
 export default function ConfiguracoesPage() {
-  const { config, salvarConfig } = useApp()
+  const { config, salvarConfig, alterarSenha } = useApp()
   const [form, setForm] = useState({
     brand_name: '',
     creci: '',
@@ -60,6 +60,11 @@ export default function ConfiguracoesPage() {
   const [salvando, setSalvando] = useState(false)
   const [sucesso, setSucesso] = useState('')
   const [erro, setErro] = useState('')
+
+  const [senhas, setSenhas] = useState({ atual: '', nova: '', confirma: '' })
+  const [trocandoSenha, setTrocandoSenha] = useState(false)
+  const [senhaOk, setSenhaOk] = useState('')
+  const [erroSenha, setErroSenha] = useState('')
 
   useEffect(() => {
     setForm({
@@ -86,8 +91,58 @@ export default function ConfiguracoesPage() {
     }
   }
 
+  const submeterSenha = async (evento) => {
+    evento.preventDefault()
+    setErroSenha('')
+    setSenhaOk('')
+    if (senhas.nova !== senhas.confirma) {
+      setErroSenha('A confirmação não confere com a senha nova.')
+      return
+    }
+    if (senhas.nova.length < 6) {
+      setErroSenha('A senha nova deve ter pelo menos 6 caracteres.')
+      return
+    }
+    setTrocandoSenha(true)
+    try {
+      const dados = await alterarSenha(senhas.atual, senhas.nova)
+      setSenhaOk(dados.mensagem || 'Senha alterada com sucesso.')
+      setSenhas({ atual: '', nova: '', confirma: '' })
+    } catch (e) {
+      setErroSenha(extrairErro(e, 'Não foi possível alterar a senha.'))
+    } finally {
+      setTrocandoSenha(false)
+    }
+  }
+
+  const campoSenha = (nome, rotulo, autoComplete) => (
+    <div>
+      <label className={classeLabel} htmlFor={nome}>
+        {rotulo}
+      </label>
+      <input
+        id={nome}
+        type="password"
+        required
+        minLength={nome === 'senha-atual' ? 1 : 6}
+        maxLength={100}
+        autoComplete={autoComplete}
+        value={senhas[nome === 'senha-atual' ? 'atual' : nome === 'senha-nova' ? 'nova' : 'confirma']}
+        onChange={(e) =>
+          setSenhas({
+            ...senhas,
+            [nome === 'senha-atual' ? 'atual' : nome === 'senha-nova' ? 'nova' : 'confirma']:
+              e.target.value,
+          })
+        }
+        className={classeInput}
+      />
+    </div>
+  )
+
   return (
-    <section className="mt-6">
+    <>
+      <section className="mt-6">
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-base font-bold text-slate-900">Dados do site</h2>
         <p className="mt-1 text-sm text-slate-500">
@@ -136,6 +191,51 @@ export default function ConfiguracoesPage() {
           </div>
         </form>
       </div>
-    </section>
+      </section>
+
+      <section className="mt-6">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="flex items-center gap-2 text-base font-bold text-slate-900">
+            <KeyRound size={18} className="text-primary" />
+            Alterar senha do painel
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            O hash é gerado automaticamente pelo sistema. Você nunca precisa
+            mexer no Railway para trocar a senha.
+          </p>
+
+          <form onSubmit={submeterSenha} className="mt-5 grid gap-5 md:grid-cols-3">
+            {campoSenha('senha-atual', 'Senha atual', 'current-password')}
+            {campoSenha('senha-nova', 'Senha nova (mínimo 6 caracteres)', 'new-password')}
+            {campoSenha('confirma-senha', 'Confirmar senha nova', 'new-password')}
+
+            <div className="md:col-span-3">
+              {erroSenha && (
+                <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  {erroSenha}
+                </div>
+              )}
+              {senhaOk && (
+                <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+                  <CheckCircle2 size={16} /> {senhaOk}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={trocandoSenha}
+                className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {trocandoSenha ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <KeyRound size={16} />
+                )}
+                {trocandoSenha ? 'Alterando...' : 'Alterar senha'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </>
   )
 }

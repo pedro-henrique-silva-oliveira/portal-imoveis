@@ -10,7 +10,14 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import schemas
-from auth import autenticar_admin, criar_token, get_current_admin
+from auth import (
+    autenticar_admin,
+    criar_token,
+    get_current_admin,
+    hash_password,
+    salvar_novo_hash,
+    senha_valida,
+)
 from config import (
     ADMIN_PASSWORD,
     ADMIN_PASSWORD_HASH,
@@ -93,7 +100,26 @@ def health():
 
 @app.get("/api/config")
 def obter_config_publica(db: Session = Depends(get_db)):
-    return {c.chave: c.valor for c in db.query(Configuracao).all()}
+    """Somente as chaves públicas (nunca expõe hash de senha)."""
+    linhas = db.query(Configuracao).all()
+    return {c.chave: c.valor for c in linhas if c.chave in CONFIG_PADRAO}
+
+
+@app.put("/api/admin/senha")
+def alterar_senha(
+    dados: schemas.AlterarSenhaRequest,
+    _: str = Depends(get_current_admin),
+):
+    try:
+        atual_ok = senha_valida(dados.senha_atual)
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail="Servidor mal configurado.")
+    if not atual_ok:
+        raise HTTPException(status_code=401, detail="Senha atual incorreta.")
+    salvar_novo_hash(hash_password(dados.nova_senha))
+    return {
+        "mensagem": "Senha alterada com sucesso! Use a nova senha no próximo login."
+    }
 
 
 @app.put("/api/admin/configuracoes")
@@ -112,7 +138,8 @@ def salvar_configuracoes(
         else:
             linha.valor = valor
     db.commit()
-    atual = {c.chave: c.valor for c in db.query(Configuracao).all()}
+    linhas = db.query(Configuracao).all()
+    atual = {c.chave: c.valor for c in linhas if c.chave in CONFIG_PADRAO}
     return {"mensagem": "Configurações salvas com sucesso.", "config": atual}
 
 
