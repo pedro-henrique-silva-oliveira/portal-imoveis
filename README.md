@@ -1,275 +1,193 @@
 # Portal Imobiliário White-Label
 
-Portal imobiliário completo com backend **FastAPI + SQLAlchemy** e frontend **React 19 + Vite + Tailwind CSS v4**.
-White-label: personalize marca, CRECI, contatos e cores alterando apenas `frontend/src/config/brand.js`.
+Portal imobiliário completo e pronto para personalização, construído como projeto de portfólio full-stack. Backend em **FastAPI + SQLAlchemy**, frontend em **React 19 + Vite + Tailwind CSS v4**.
 
-> 📌 Este README documenta o estado completo do projeto em **24/08/2026**, incluindo o histórico de tudo que foi feito no dia, problemas resolvidos e o próximo passo pendente.
+A marca, contatos e dados exibidos no site podem ser alterados **sem tocar no código** — diretamente pelo painel administrativo ou por um único arquivo de configuração.
 
----
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 
-## 1. Links de produção (no ar)
+## Demonstração
 
 | Serviço | URL |
 |---|---|
-| Site (frontend) | https://pedro-henrique-silva-oliveira.github.io/portal-imoveis/ |
-| API (backend) | https://portal-imoveis.up.railway.app |
-| Health check | https://portal-imoveis.up.railway.app/api/health |
-| Docs interativas | https://portal-imoveis.up.railway.app/docs |
-| Painel admin | https://pedro-henrique-silva-oliveira.github.io/portal-imoveis/admin/login |
-| Repositório | https://github.com/pedro-henrique-silva-oliveira/portal-imoveis |
+| Site | https://pedro-henrique-silva-oliveira.github.io/portal-imoveis/ |
+| API (health check) | https://portal-imoveis.up.railway.app/api/health |
+| Documentação interativa da API | https://portal-imoveis.up.railway.app/docs |
+| Painel administrativo | https://pedro-henrique-silva-oliveira.github.io/portal-imoveis/admin/login |
 
----
+## Funcionalidades
 
-## 2. Acessos e credenciais
+**Site público**
 
-| Item | Valor | Onde está guardado |
-|---|---|---|
-| Usuário admin | `admin` | variável `ADMIN_USERNAME` no Railway |
-| Senha admin (atual em produção) | `NqUxyEvhDJCLQRtw` | hash na variável `ADMIN_PASSWORD_HASH` |
-| Senha admin NOVA (pendente de ativar) | `1234` | ver seção 4 e arquivo local `TROCA-SENHA-INSTRUCOES.txt` |
-| Banco PostgreSQL | Supabase região São Paulo | `DATABASE_URL` no Railway |
-| Chave JWT | gerada aleatória | `SECRET_KEY` no Railway |
-| Credenciais locais de dev | `admin` / `TroqueEstaSenha123` | arquivo `backend/.env` (gitignored) |
+- Catálogo de imóveis com busca avançada, filtros (tipo, transação, cidade, bairro, faixa de preço, quartos), ordenação e paginação
+- Página de detalhes com galeria de fotos, ficha técnica, mapa interativo (Leaflet/OpenStreetMap) e botão flutuante de WhatsApp com mensagem pré-preenchida
+- Formulário de interesse que gera leads vinculados ao imóvel
+- Favoritos persistidos em `localStorage`
+- Banner hero responsivo com call-to-action e integração direta com WhatsApp
 
-⚠️ **Segurança:** nenhuma senha/segredo deve ser colada neste README (repositório público). Os valores reais vivem somente nas variáveis do Railway e no `backend/.env` local.
+**Painel administrativo (JWT)**
 
----
+- Dashboard com métricas (imóveis, vendas, locações, leads)
+- CRUD completo de imóveis com upload de imagens em Base64 (até 25 fotos)
+- Geocodificação automática por CEP (AwesomeAPI → BrasilAPI → Nominatim, com fallback)
+- Gestão de leads recebidos
+- **Configurações editáveis em tempo real**: nome do site, CRECI, WhatsApp, telefone e e-mail — aplicados instantaneamente no site inteiro, sem redeploy
+- **Alteração de senha pelo próprio painel**: o hash bcrypt é gerado automaticamente pelo sistema e persistido no banco — nenhuma variável de ambiente precisa ser alterada
 
-## 3. Infraestrutura de deploy
+## Stack tecnológica
+
+| Camada | Tecnologias |
+|---|---|
+| Backend | FastAPI, Pydantic v2, SQLAlchemy 2, python-jose (JWT HS256), bcrypt |
+| Frontend | React 19, Vite 6, Tailwind CSS v4, React Router 7, Axios, Leaflet, lucide-react |
+| Banco de dados | PostgreSQL (produção) ou SQLite (desenvolvimento) — intercambiáveis via `DATABASE_URL` |
+| Infraestrutura | Docker (backend), GitHub Actions + GitHub Pages (frontend), auto-deploy no push |
+
+## Arquitetura de deploy
 
 ```text
-GitHub (main) ──push──► ┬─► GitHub Actions (.github/workflows/deploy-pages.yml)
-                        │     builda frontend com base /portal-imoveis/
-                        │     e VITE_API_URL apontando para o Railway
-                        │     publica no GitHub Pages
-                        │
-                        └─► Railway (auto-deploy)
-                              builda com o Dockerfile DA RAIZ do repo
-                              roda uvicorn na porta $PORT
-                              conecta no Supabase via DATABASE_URL
+push para main ──┬─► GitHub Actions ──► build do frontend ──► GitHub Pages
+                 │                      (base path configurável,
+                 │                       VITE_API_URL injetado no build)
+                 │
+                 └─► Railway ──► build via Dockerfile ──► FastAPI/Uvicorn
+                                        (porta dinâmica $PORT)
+                                             │
+                                             ▼
+                                        PostgreSQL (Supabase)
 ```
 
-- Frontend: GitHub Pages (build por Actions a cada push em `main`)
-- Backend: Railway (auto-deploy a cada push em `main`; build via `Dockerfile` da raiz)
-- Banco: Supabase PostgreSQL (pooler `aws-0-sa-east-1`, porta 6543)
+O frontend consome exclusivamente a API REST — não há estado compartilhado entre as camadas. O CORS é restrito às origens declaradas, com suporte a padrões por regex.
 
-### Variáveis do Railway (nomes exatos)
-
-```
-PORT
-SECRET_KEY
-ADMIN_USERNAME
-ADMIN_PASSWORD_HASH
-CORS_ORIGINS
-TOKEN_EXPIRE_HOURS
-DATABASE_URL
-```
-
-Valores reais: aba Variables do serviço `portal-imoveis` no Railway.
-O `CORS_ORIGINS` pode conter qualquer valor — o código aceita qualquer página `*.github.io` via regex (ver seção 10).
-
----
-
-## 4. ⏳ ONDE PARAMOS — pendência do dia
-
-**Troca de senha do admin para `1234` ainda NÃO está ativa.**
-
-O hash bcrypt já foi gerado e validado localmente. Falta **um único passo manual**:
-
-1. Railway → card `portal-imoveis`
-2. Aba **Variables**
-3. Clicar na linha `ADMIN_PASSWORD_HASH`
-4. Apagar o valor antigo inteiro (começa com `$2b$12$KJpO...`)
-5. Colar o hash novo (está no arquivo local `TROCA-SENHA-INSTRUCOES.txt`)
-6. Clicar **Update**
-7. Esperar o deploy novo ficar verde (~2 min)
-
-Depois disso: login passa a ser `admin` / `1234`.
-Validação feita pela API neste projeto: POST `/api/auth/login` com a nova senha deve retornar 200, e a antiga deve dar 401.
-
-⚠️ Aviso registrado ao usuário: `1234` é uma senha fraca — recomenda-se fortalecer depois.
-
----
-
-## 5. Cronologia completa do dia (24/08/2026)
-
-### Parte 1 — Construção do portal
-1. Lidas as instruções em `prompt-opencode-portal.md`
-2. Criado backend FastAPI completo: `config.py`, `database.py`, `models.py` (Property, Lead), `schemas.py`, `auth.py`, `main.py`, `wsgi.py`, `requirements.txt`, `.env.example`
-3. Criado frontend React 19 + Vite + Tailwind v4: Navbar, Footer, PropertyCard, MapView, PhotoGallery, PropertyFilters, ContactForm; páginas Home, PropertyDetails, AdminLogin, AdminDashboard; AppContext global; `brand.js` white-label
-4. Corrigidos detalhes: ícone `Suitcase` → `BedSingle`; `passlib` removido (incompatível com bcrypt 5.x) → uso direto de `bcrypt`; import faltante de `Column` em `models.py`
-5. Removidos a pedido do usuário: **simulação de financiamento** e **análise de crédito/CPF** (frontend + endpoint + schemas); verificado zero referências restantes
-6. Rodados **17 testes de integração** da API — todos passaram
-7. Build de produção validado (`npm run build`)
-
-### Parte 2 — GitHub
-8. `gh` CLI instalado (v2.98.0) e autenticado como `pedro-henrique-silva-oliveira`
-9. Repo público criado: `portal-imoveis`; push inicial (commit `c718dca`)
-
-### Parte 3 — GitHub Pages (frontend)
-10. Primeiro deploy mostrava só o README → configurado Pages para modo **workflow**
-11. Criado `.github/workflows/deploy-pages.yml`: build do frontend com `PAGES=true` (base `/portal-imoveis/`), copia `index.html` → `404.html` (fallback SPA), `deploy-pages@v4`
-12. Site publicado e acessível ✓
-
-### Parte 4 — Supabase (banco)
-13. Projeto criado pelo usuário em São Paulo; host pooler porta 6543
-14. `DATABASE_URL` formatado corretamente (`@` da senha → `%40`); conexão testada com sucesso (PostgreSQL 17.6)
-15. Senha do banco trocada pelo usuário para versão alfanumérica (a original continha caracteres que o chat corrompia)
-
-### Parte 5 — Railway (backend)
-16. Preparados `Procfile` + `psycopg2-binary` habilitado (commit `a2972f9`)
-17. Primeiros deploys falharam: `DATABASE_URL` chegou corrompida no painel (colagem do chat virou link) → usuário resetou a senha do banco e recolou
-18. Deploy ficou verde; health OK ✓
-
-### Parte 6 — Ligação site ↔ API
-19. Adicionado `VITE_API_URL` no env do job de build do Pages (commit `432efca`) → bundle publicado contém a URL da API ✓
-
-### Parte 7 — Guerra com o CORS
-20. Preflight OPTIONS dava 400: valor de `CORS_ORIGINS` no Railway veio corrompido (nem o padrão localhost passava)
-21. Commit `67552b4`: parser tolerante (espaços, barra final, maiúsculas)
-22. Commit `c6b9d11`: solução definitiva — `allow_origin_regex=r"^https://[a-z0-9-]+\.github\.io$"` no middleware + limpeza de aspas → **CORS OK** independente da variável
-
-### Parte 8 — Deploy quebrou de novo e a salvação: Dockerfile
-23. Dois deploys falharam ("Railpack could not determine how to build") e as variáveis sumiram do painel
-24. Causa: build passou a analisar a RAIZ do repo (config Root Directory `/backend` perdida)
-25. Commit `290e3c7`: criado **Dockerfile na raiz** (python:3.12-slim, instala requirements do backend/, sobe uvicorn na `$PORT`) → deploy verde definitivo, independente de configuração de pasta
-26. Usuário recolou as 7 variáveis no Railway
-
-### Parte 9 — Dados de exemplo
-27. Login admin pela API OK; criados 2 imóveis de exemplo (#1 casa venda R$450k Centro SP; #2 apartamento aluguel R$2.200 Av. Paulista) — visíveis no site
-
-### Parte 10 — Área do corretor não abria
-28. Diagnóstico: links do rodapé usavam `<a href="/admin/login">` (absoluto) → caía fora da pasta `/portal-imoveis/`
-29. Commit `6810657`: rodapé migrado para `<Link>` do react-router e logout do dashboard para `useNavigate` → **corrigido e publicado** ✓
-
-### Parte 11 — Troca de senha (em andamento)
-30. Usuário pediu senha `1234`; avisado sobre fraqueza; optou por manter
-31. Hash bcrypt gerado e validado; instruções completas salvas em `TROCA-SENHA-INSTRUCOES.txt`
-32. **PENDENTE**: usuário ainda não salvou a variável no Railway (deploy de ~20 min antes era de código, não da variável)
-
----
-
-## 6. Commits do dia (ordem cronológica)
-
-| Hash | Assunto |
-|---|---|
-| `c718dca` | Projeto inicial completo |
-| `4e6bc77` | Deploy GitHub Pages |
-| `a2972f9` | Procfile + psycopg2-binary |
-| `432efca` | VITE_API_URL no workflow |
-| `67552b4` | Normalizar origens CORS |
-| `290e3c7` | Dockerfile na raiz |
-| `c6b9d11` | Regex github.io no CORS |
-| `6810657` | Links internos compatíveis com Pages |
-
----
-
-## 7. Estrutura do projeto
+## Estrutura do projeto
 
 ```text
 /
-├── Dockerfile                    # Build do backend no Railway (raiz!)
+├── Dockerfile                        # Build do backend (usado pelo Railway)
 ├── .github/workflows/deploy-pages.yml
 ├── backend/
-│   ├── main.py                   # Endpoints + CORS(regex github.io)
-│   ├── config.py                 # Env vars (parser tolerante)
-│   ├── database.py               # SQLite local ou Postgres via DATABASE_URL
-│   ├── models.py                 # Property, Lead
-│   ├── schemas.py                # Pydantic v2
-│   ├── auth.py                   # bcrypt direto + JWT HS256
-│   ├── wsgi.py                   # Adaptador PythonAnywhere (alternativa)
-│   ├── Procfile                  # Start alternativo Nixpacks
-│   ├── requirements.txt          # psycopg2-binary habilitado
-│   └── .env.example
+│   ├── main.py                       # Endpoints, CORS e handlers globais
+│   ├── auth.py                       # JWT + bcrypt + troca de senha
+│   ├── config.py                     # Variáveis de ambiente centralizadas
+│   ├── database.py                   # Engine/Session (SQLite ou PostgreSQL)
+│   ├── models.py                     # Models: Property, Lead, Configuracao
+│   ├── schemas.py                    # Validações Pydantic v2
+│   ├── wsgi.py                       # Adaptador ASGI->WSGI (PythonAnywhere)
+│   └── requirements.txt
 ├── frontend/
-│   ├── vite.config.js            # base condicional /portal-imoveis/ quando PAGES=true
 │   └── src/
-│       ├── components/           # Navbar, Footer(<Link>), cards, mapa, galeria...
-│       ├── pages/                # Home, PropertyDetails, AdminLogin, AdminDashboard
-│       ├── context/AppContext.jsx# axios baseURL = import.meta.env.VITE_API_URL
-│       ├── config/brand.js       # ← PERSONALIZAR MARCA AQUI
-│       └── utils/format.js
-├── TROCA-SENHA-INSTRUCOES.txt    # local: passo a passo da pendência (não versionar)
-└── README.md                     # este arquivo
+│       ├── components/               # Navbar, Footer, cards, mapa, galeria...
+│       ├── pages/                    # Home, PropertyDetails, Admin*, Configuracoes
+│       ├── context/AppContext.jsx    # Estado global + cliente HTTP + config dinâmica
+│       ├── config/brand.js           # ← Valores padrão do white-label
+│       └── utils/format.js           # Formatação BRL/data/máscaras
+└── README.md
 ```
 
-### Endpoints da API
+## Rodando localmente
 
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/api/health` | Status do serviço |
-| POST | `/api/auth/login` | Login admin → JWT (8h) |
-| GET | `/api/imoveis` | Listagem paginada + filtros (público) |
-| GET | `/api/imoveis/{id}` | Detalhes (público) |
-| POST/PUT/DELETE | `/api/imoveis[/{id}]` | CRUD protegido por JWT |
-| GET | `/api/admin/metrics` | Métricas do painel (JWT) |
-| POST | `/api/leads` | Lead público (nome/telefone/mensagem) |
-| GET | `/api/admin/leads` | Listar leads (JWT) |
-
----
-
-## 8. Como atualizar o site no futuro
-
-Qualquer mudança segue o mesmo fluxo (tudo automático):
-
-1. Editar código local
-2. `git add . && git commit -m "..."` 
-3. `git push`
-4. GitHub Actions reconstrói o site (~2 min) e o Railway reconstrói a API (~2 min)
-
-Para mudar marca/cores/contato: editar só `frontend/src/config/brand.js`.
-
----
-
-## 9. Rodar localmente
-
-Backend:
+**Backend** (Python 3.12+):
 
 ```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate        # Windows
+venv\Scripts\activate              # Windows | source venv/bin/activate (Linux/Mac)
 pip install -r requirements.txt
-copy .env.example .env       # preencher SECRET_KEY e ADMIN_PASSWORD_HASH
-uvicorn main:app --reload    # http://127.0.0.1:8000/docs
+copy .env.example .env             # Linux/Mac: cp .env.example .env
+uvicorn main:app --reload
 ```
 
-Frontend:
+A API sobe em `http://127.0.0.1:8000` (Swagger em `/docs`). Sem `DATABASE_URL`, um banco SQLite é criado automaticamente.
+
+Gere as credenciais iniciais para o `.env`:
+
+```bash
+# SECRET_KEY
+python -c "import secrets; print(secrets.token_hex(32))"
+
+# ADMIN_PASSWORD_HASH (troque SuaSenhaForte pela senha desejada)
+python -c "import bcrypt; print(bcrypt.hashpw(b'SuaSenhaForte', bcrypt.gensalt(rounds=12)).decode())"
+```
+
+> Alternativa sem hash: defina apenas `ADMIN_PASSWORD` no `.env`. Após o primeiro login, a senha pode ser trocada pelo painel (o hash passa a ser salvo no banco automaticamente).
+
+**Frontend** (Node.js 18+):
 
 ```bash
 cd frontend
 npm install
-npm run dev                  # http://localhost:5173
+npm run dev
 ```
 
-Sem `VITE_API_URL`, o frontend usa `http://127.0.0.1:8000`. Com SQLite (padrão do `.env.example`) não precisa de Postgres local.
+Site em `http://localhost:5173` · Painel em `/admin/login`. Sem `VITE_API_URL`, o frontend aponta para `http://127.0.0.1:8000`.
 
-Gerar hash de senha nova:
+## Variáveis de ambiente (backend)
 
-```bash
-python -c "import bcrypt; print(bcrypt.hashpw(b'SuaSenha', bcrypt.gensalt(rounds=12)).decode())"
-```
-
----
-
-## 10. Lições/armadilhas descobertas hoje (consulte antes de debugar)
-
-| Sintoma | Causa real | Solução aplicada |
+| Variável | Exemplo | Descrição |
 |---|---|---|
-| `passlib` erro com bcrypt | bcrypt 5.x removeu `__about__` | usar `bcrypt` puro em `auth.py` |
-| Pages mostrava README | Pages em modo "branch" | mudar para modo **workflow** nas settings |
-| Rota `/admin/login` 404 fora da home | SPA sem fallback + caminho absoluto | `index.html→404.html` no workflow + `<Link>` em vez de `href="/"` |
-| Preflight CORS 400 mesmo com origem certa na lista | variável `CORS_ORIGINS` corrompida na colagem | `allow_origin_regex` aceita `*.github.io` no código |
-| Railpack não sabia buildar | build olhando a raiz (Root Directory perdido) | **Dockerfile na raiz** — não depender mais dessa config |
-| `curl` com JSON multilinha falha no PowerShell | parsing de args nativos | usar `Invoke-RestMethod` com body UTF8 bytes |
-| `curl -I` dá 405 na API | HEAD não é rota declarada (falso alarme) | testar com `-X GET` |
+| `SECRET_KEY` | `token aleatório hex` | Chave de assinatura dos JWTs (**obrigatória**) |
+| `ADMIN_USERNAME` | `admin` | Usuário do painel |
+| `ADMIN_PASSWORD_HASH` | `$2b$12$...` | Hash bcrypt da senha (recomendado) |
+| `ADMIN_PASSWORD` | `senha-em-texto` | Alternativa simples ao hash (uso em dev) |
+| `DATABASE_URL` | `postgresql://user:pass@host:5432/db` | Conexão SQL (padrão: SQLite local) |
+| `CORS_ORIGINS` | `https://meusite.com` | Origens permitidas, separadas por vírgula |
+| `TOKEN_EXPIRE_HOURS` | `8` | Validade do token JWT |
+
+Variáveis de ambiente (frontend, tempo de build):
+
+| Variável | Descrição |
+|---|---|
+| `VITE_API_URL` | URL base da API em produção |
+| `PAGES` | Quando `true`, aplica base path `/portal-imoveis/` (GitHub Pages) |
+
+## Referência da API
+
+| Método | Rota | Autenticação | Descrição |
+|---|---|---|---|
+| GET | `/api/health` | pública | Status do serviço |
+| GET | `/api/config` | pública | Dados de marca/contato usados pelo site |
+| POST | `/api/auth/login` | pública | Login do admin, retorna JWT |
+| PUT | `/api/admin/senha` | JWT | Altera a própria senha (exige senha atual) |
+| GET | `/api/imoveis` | pública | Listagem paginada com filtros e ordenação |
+| GET | `/api/imoveis/{id}` | pública | Detalhes do imóvel |
+| POST / PUT / DELETE | `/api/imoveis[/{id}]` | JWT | CRUD de imóveis |
+| GET | `/api/admin/metrics` | JWT | Métricas do dashboard |
+| POST | `/api/leads` | pública | Cadastro de lead de interesse |
+| GET / DELETE | `/api/admin/leads[/{id}]` | JWT | Gestão de leads |
+| GET / PUT | `/api/admin/configuracoes` | JWT* | Leitura* e edição das configurações do site |
+
+\* A leitura usa a rota pública `/api/config`; chaves sensíveis (como hashes de senha) nunca são expostas.
+
+## Personalização (white-label)
+
+Dois níveis, ambos sem deploy:
+
+1. **Pelo painel** (aba Configurações): nome do site, CRECI, WhatsApp, telefone exibido e e-mail — salvos no banco e aplicados no site imediatamente.
+2. **Valores padrão e tema**: `frontend/src/config/brand.js` define os valores iniciais, cidade/estado padrão, cores primária/secundária (aplicadas como variáveis CSS/Tailwind), tipos de imóvel e comodidades disponíveis.
+
+## Deploy em produção
+
+**Banco (Supabase ou similar)** — crie o projeto, copie a connection string (pooler, porta 6543) e use como `DATABASE_URL`. As tabelas são criadas automaticamente na primeira inicialização.
+
+**Backend (Railway)** — crie o serviço apontando para este repositório. O `Dockerfile` na raiz é detectado automaticamente: instala as dependências do `backend/`, expõe a aplicação na porta `$PORT` e roda as migrations (`create_all`) no start. Configure as variáveis de ambiente listadas acima.
+
+**Frontend (GitHub Pages)** — o workflow `.github/workflows/deploy-pages.yml` builda o frontend a cada push em `main` (com `VITE_API_URL` da sua API) e publica via `actions/deploy-pages`. O `index.html` é duplicado como `404.html` para funcionar como SPA em rotas diretas.
+
+## Segurança
+
+- Nenhuma credencial versionada: tudo via variáveis de ambiente (`.env.example` como referência)
+- Senhas com hash bcrypt (cost 12); comparação em tempo constante para o usuário
+- JWT HS256 com expiração configurável; rotas de escrita protegidas por dependência FastAPI
+- Troca de senha exige a senha atual e gera novo hash no banco
+- Validação estrita de inputs com Pydantic v2 (limites de tamanho, enums, sanitização)
+- Handler global de exceções: nenhum traceback exposto ao cliente
+- CORS restrito às origens declaradas; endpoint público de configuração filtra chaves sensíveis
 
 ---
 
-## 11. Próximos passos sugeridos
-
-1. ⏳ Concluir a troca de senha do admin (seção 4)
-2. Trocar também a senha do banco Supabase por uma forte e única (a atual passou pelo chat)
-3. Cadastrar imóveis reais via painel (botão **Buscar CEP** preenche endereço/mapa)
-4. Personalizar `brand.js` (nome, CRECI, WhatsApp, cores)
-5. Opcional: rate-limit no login, fotos em storage externo (S3/Supabase Storage) em vez de Base64
+Desenvolvido por [pedro-henrique-silva-oliveira](https://github.com/pedro-henrique-silva-oliveira).
