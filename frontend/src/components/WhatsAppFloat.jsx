@@ -1,11 +1,12 @@
 import { MessageCircle } from 'lucide-react'
-import { WHATSAPP_NUMBER } from '../config/brand'
+import { useApp } from '../context/AppContext'
 
 export default function WhatsAppFloat({ mensagem }) {
+  const { config } = useApp()
   const texto = encodeURIComponent(mensagem || 'Olá! Gostaria de mais informações.')
   return (
     <a
-      href={`https://wa.me/${WHATSAPP_NUMBER}?text=${texto}`}
+      href={`https://wa.me/${config.whatsapp_number}?text=${texto}`}
       target="_blank"
       rel="noreferrer"
       aria-label="Falar no WhatsApp"

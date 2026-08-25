@@ -53,3 +53,10 @@ class Lead(Base):
     mensagem = Column(Text, default="")
     imovel_id = Column(Integer, ForeignKey("properties.id"), nullable=True)
     data_criacao = Column(DateTime, default=agora_utc)
+
+
+class Configuracao(Base):
+    __tablename__ = "configuracoes"
+
+    chave = Column(String(60), primary_key=True)
+    valor = Column(String(300), nullable=False)

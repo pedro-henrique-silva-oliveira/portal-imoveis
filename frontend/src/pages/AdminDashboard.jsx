@@ -8,14 +8,16 @@ import {
   Mail,
   Pencil,
   Plus,
+  Settings,
   Tag,
   Trash2,
 } from 'lucide-react'
 import AdminPropertyForm from '../components/AdminPropertyForm'
 import Loader from '../components/Loader'
+import ConfiguracoesPage from './ConfiguracoesPage'
 import { useApp } from '../context/AppContext'
 import { extrairErro, formatarBRL, formatarData } from '../utils/format'
-import { BRAND_NAME, TIPOS_IMOVEL } from '../config/brand'
+import { TIPOS_IMOVEL } from '../config/brand'
 
 const classeInput =
   'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary'
@@ -43,6 +45,7 @@ export default function AdminDashboard() {
     buscarMetricas,
     buscarLeads,
     excluirLead,
+    config,
   } = useApp()
 
   const [aba, setAba] = useState('imoveis')
@@ -122,7 +125,7 @@ export default function AdminDashboard() {
             </span>
             <div>
               <p className="text-sm font-bold leading-tight">Painel Administrativo</p>
-              <p className="text-xs leading-tight text-slate-500">{BRAND_NAME}</p>
+              <p className="text-xs leading-tight text-slate-500">{config.brand_name}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -168,17 +171,19 @@ export default function AdminDashboard() {
               {[
                 { id: 'imoveis', label: 'Imóveis' },
                 { id: 'leads', label: `Leads (${leads.length})` },
+                { id: 'config', label: 'Configurações' },
               ].map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setAba(item.id)}
-                  className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                  className={`flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold transition ${
                     aba === item.id
                       ? 'bg-primary text-white'
                       : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
                   }`}
                 >
+                  {item.id === 'config' && <Settings size={14} />}
                   {item.label}
                 </button>
               ))}
@@ -352,6 +357,8 @@ export default function AdminDashboard() {
                 )}
               </section>
             )}
+
+            {aba === 'config' && <ConfiguracoesPage />}
           </>
         )}
       </main>

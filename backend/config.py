@@ -38,3 +38,11 @@ CORS_ORIGINS = [
 ]
 
 CORS_ORIGIN_REGEX = r"^https://[a-z0-9-]+\.github\.io$"
+
+CONFIG_PADRAO = {
+    "brand_name": "Imobiliária Exemplo",
+    "creci": "CRECI 00000-J",
+    "whatsapp_number": "5511999999999",
+    "telefone_exibicao": "(11) 99999-9999",
+    "email_contato": "contato@imobiliaria.com.br",
+}

@@ -2,11 +2,6 @@ import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { Building2, Heart, Menu, Phone, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import {
-  BRAND_NAME,
-  TELEFONE_EXIBICAO,
-  WHATSAPP_NUMBER,
-} from '../config/brand'
 
 const links = [
   { to: '/', label: 'Início' },
@@ -16,7 +11,7 @@ const links = [
 
 export default function Navbar() {
   const [aberto, setAberto] = useState(false)
-  const { favoritos } = useApp()
+  const { favoritos, config } = useApp()
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
@@ -25,7 +20,7 @@ export default function Navbar() {
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white">
             <Building2 size={20} />
           </span>
-          <span className="text-lg font-bold text-slate-900">{BRAND_NAME}</span>
+          <span className="text-lg font-bold text-slate-900">{config.brand_name}</span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
@@ -51,13 +46,13 @@ export default function Navbar() {
             )}
           </Link>
           <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}`}
+            href={`https://wa.me/${config.whatsapp_number}`}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
           >
             <Phone size={15} />
-            {TELEFONE_EXIBICAO}
+            {config.telefone_exibicao}
           </a>
         </nav>
 

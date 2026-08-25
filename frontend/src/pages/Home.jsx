@@ -14,7 +14,6 @@ import Loader from '../components/Loader'
 import Pagination from '../components/Pagination'
 import PropertyCard from '../components/PropertyCard'
 import { useApp } from '../context/AppContext'
-import { WHATSAPP_NUMBER } from '../config/brand'
 
 const diferenciais = [
   { icone: ShieldCheck, titulo: 'Imóveis verificados', texto: 'Documentação conferida' },
@@ -23,7 +22,7 @@ const diferenciais = [
 ]
 
 export default function Home() {
-  const { itens, total, carregando, erro, filtros, setFiltros, favoritos } = useApp()
+  const { itens, total, carregando, erro, filtros, setFiltros, favoritos, config } = useApp()
   const [somenteFavoritos, setSomenteFavoritos] = useState(false)
   const [searchParams] = useSearchParams()
 
@@ -86,7 +85,7 @@ export default function Home() {
                 <ArrowRight size={16} />
               </button>
               <a
-                href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                href={`https://wa.me/${config.whatsapp_number}`}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl border border-white/40 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/10"

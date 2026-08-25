@@ -8,9 +8,24 @@ import {
   useState,
 } from 'react'
 import { extrairErro } from '../utils/format'
+import {
+  BRAND_NAME,
+  CRECI,
+  EMAIL_CONTATO,
+  TELEFONE_EXIBICAO,
+  WHATSAPP_NUMBER,
+} from '../config/brand'
 
 const TOKEN_KEY = 'imob_token'
 const FAV_KEY = 'imob_favoritos'
+
+export const CONFIG_PADRAO = {
+  brand_name: BRAND_NAME,
+  creci: CRECI,
+  whatsapp_number: WHATSAPP_NUMBER,
+  telefone_exibicao: TELEFONE_EXIBICAO,
+  email_contato: EMAIL_CONTATO,
+}
 
 const FiltrosPadrao = {
   transacao: '',
@@ -57,6 +72,18 @@ export function AppProvider({ children }) {
   })
 
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || '')
+  const [config, setConfig] = useState(CONFIG_PADRAO)
+
+  useEffect(() => {
+    api
+      .get('/api/config')
+      .then(({ data }) => setConfig((atual) => ({ ...atual, ...data })))
+      .catch(() => {})
+  }, [api])
+
+  useEffect(() => {
+    document.title = config.brand_name
+  }, [config.brand_name])
 
   useEffect(() => {
     localStorage.setItem(FAV_KEY, JSON.stringify(favoritos))
@@ -199,6 +226,15 @@ export function AppProvider({ children }) {
     [api],
   )
 
+  const salvarConfig = useCallback(
+    async (valores) => {
+      const { data } = await api.put('/api/admin/configuracoes', valores)
+      setConfig((atual) => ({ ...atual, ...data.config }))
+      return data
+    },
+    [api],
+  )
+
   const valor = useMemo(
     () => ({
       itens,
@@ -210,6 +246,7 @@ export function AppProvider({ children }) {
       filtros,
       favoritos,
       autenticado: !!token,
+      config,
       setFiltros,
       limparFiltros,
       setPagina,
@@ -225,6 +262,7 @@ export function AppProvider({ children }) {
       buscarMetricas,
       buscarLeads,
       excluirLead,
+      salvarConfig,
     }),
     [
       itens,
@@ -236,6 +274,7 @@ export function AppProvider({ children }) {
       filtros,
       favoritos,
       token,
+      config,
       setFiltros,
       limparFiltros,
       setPagina,
@@ -251,6 +290,7 @@ export function AppProvider({ children }) {
       buscarMetricas,
       buscarLeads,
       excluirLead,
+      salvarConfig,
     ],
   )
 

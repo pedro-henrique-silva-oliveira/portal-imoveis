@@ -3,18 +3,17 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { Building2, Loader2, Lock } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { extrairErro } from '../utils/format'
-import { BRAND_NAME } from '../config/brand'
 
 export default function AdminLogin() {
-  const { login, autenticado } = useApp()
+  const { login, autenticado, config } = useApp()
   const navigate = useNavigate()
   const [credenciais, setCredenciais] = useState({ username: '', password: '' })
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
 
   useEffect(() => {
-    document.title = `Painel - ${BRAND_NAME}`
-  }, [])
+    document.title = `Painel - ${config.brand_name}`
+  }, [config.brand_name])
 
   if (autenticado) {
     return <Navigate to="/admin" replace />
@@ -45,7 +44,7 @@ export default function AdminLogin() {
             <Lock size={22} />
           </span>
           <h1 className="text-xl font-bold">Painel Administrativo</h1>
-          <p className="text-sm text-slate-500">{BRAND_NAME}</p>
+          <p className="text-sm text-slate-500">{config.brand_name}</p>
         </div>
 
         <div className="mt-6 space-y-4">

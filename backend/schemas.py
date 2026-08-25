@@ -166,3 +166,21 @@ class LeadOut(BaseModel):
     data_criacao: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ConfiguracaoUpdate(BaseModel):
+    brand_name: Optional[str] = Field(default=None, min_length=2, max_length=60)
+    creci: Optional[str] = Field(default=None, max_length=40)
+    whatsapp_number: Optional[str] = None
+    telefone_exibicao: Optional[str] = Field(default=None, max_length=25)
+    email_contato: Optional[EmailStr] = None
+
+    @field_validator("whatsapp_number")
+    @classmethod
+    def validar_whatsapp(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        digitos = re.sub(r"\D", "", v or "")
+        if not 10 <= len(digitos) <= 15:
+            raise ValueError("WhatsApp inválido. Use somente números com DDD e país.")
+        return digitos

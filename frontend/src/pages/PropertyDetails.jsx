@@ -18,11 +18,7 @@ import ImageGallery from '../components/ImageGallery'
 import Loader from '../components/Loader'
 import PropertyMap from '../components/PropertyMap'
 import { useApp } from '../context/AppContext'
-import {
-  BRAND_NAME,
-  FEATURES_DISPONIVEIS,
-  WHATSAPP_NUMBER,
-} from '../config/brand'
+import { FEATURES_DISPONIVEIS } from '../config/brand'
 import { extrairErro, formatarBRL } from '../utils/format'
 
 const classeInput =
@@ -31,7 +27,7 @@ const classeLabel = 'mb-1 block text-xs font-semibold uppercase tracking-wide te
 
 export default function PropertyDetails() {
   const { id } = useParams()
-  const { getImovel, submeterLead } = useApp()
+  const { getImovel, submeterLead, config } = useApp()
 
   const [imovel, setImovel] = useState(null)
   const [carregando, setCarregando] = useState(true)
@@ -77,7 +73,7 @@ export default function PropertyDetails() {
   const localizacao = [imovel.bairro, imovel.cidade].filter(Boolean).join(', ')
   const mensagemWhats =
     `Olá! Vi o imóvel "${imovel.titulo}" (${formatarBRL(imovel.preco)}) ` +
-    `no site da ${BRAND_NAME} e gostaria de mais informações. (Ref. #${imovel.id})`
+    `no site da ${config.brand_name} e gostaria de mais informações. (Ref. #${imovel.id})`
 
   const enviarLead = async (evento) => {
     evento.preventDefault()
@@ -187,7 +183,7 @@ export default function PropertyDetails() {
               {imovel.transacao === 'venda' ? 'Valor de venda' : 'Valor do aluguel mensal'}
             </p>
 
-            <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensagemWhats)}`}
+            <a href={`https://wa.me/${config.whatsapp_number}?text=${encodeURIComponent(mensagemWhats)}`}
               target="_blank" rel="noreferrer"
               className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-green-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-600">
               <MessageCircle size={18} /> Falar no WhatsApp

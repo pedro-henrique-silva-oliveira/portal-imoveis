@@ -11,9 +11,15 @@ from sqlalchemy.orm import Session
 
 import schemas
 from auth import autenticar_admin, criar_token, get_current_admin
-from config import ADMIN_PASSWORD, ADMIN_PASSWORD_HASH, CORS_ORIGINS, CORS_ORIGIN_REGEX
+from config import (
+    ADMIN_PASSWORD,
+    ADMIN_PASSWORD_HASH,
+    CONFIG_PADRAO,
+    CORS_ORIGINS,
+    CORS_ORIGIN_REGEX,
+)
 from database import Base, engine, get_db
-from models import Lead, Property
+from models import Configuracao, Lead, Property
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("portal-imobiliario")
@@ -22,6 +28,7 @@ logger = logging.getLogger("portal-imobiliario")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    semear_config_padrao()
     if not (ADMIN_PASSWORD_HASH or ADMIN_PASSWORD):
         logger.warning(
             "ATENÇÃO: nenhuma senha de administrador configurada. "
@@ -29,6 +36,15 @@ async def lifespan(app: FastAPI):
         )
     logger.info("Banco de dados inicializado.")
     yield
+
+
+def semear_config_padrao() -> None:
+    with Session(engine) as db:
+        existentes = {c.chave for c in db.query(Configuracao).all()}
+        for chave, valor in CONFIG_PADRAO.items():
+            if chave not in existentes:
+                db.add(Configuracao(chave=chave, valor=valor))
+        db.commit()
 
 
 app = FastAPI(
@@ -73,6 +89,31 @@ ORDENS = {
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/config")
+def obter_config_publica(db: Session = Depends(get_db)):
+    return {c.chave: c.valor for c in db.query(Configuracao).all()}
+
+
+@app.put("/api/admin/configuracoes")
+def salvar_configuracoes(
+    dados: schemas.ConfiguracaoUpdate,
+    db: Session = Depends(get_db),
+    _: str = Depends(get_current_admin),
+):
+    alteracoes = dados.model_dump(exclude_none=True)
+    if not alteracoes:
+        raise HTTPException(status_code=422, detail="Nenhum campo para atualizar.")
+    for chave, valor in alteracoes.items():
+        linha = db.get(Configuracao, chave)
+        if linha is None:
+            db.add(Configuracao(chave=chave, valor=valor))
+        else:
+            linha.valor = valor
+    db.commit()
+    atual = {c.chave: c.valor for c in db.query(Configuracao).all()}
+    return {"mensagem": "Configurações salvas com sucesso.", "config": atual}
 
 
 @app.post("/api/auth/login", response_model=schemas.TokenResponse)
