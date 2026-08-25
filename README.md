@@ -38,7 +38,7 @@ A marca, contatos e dados exibidos no site podem ser alterados **sem tocar no c�
 - Geocodificação automática por CEP (AwesomeAPI → BrasilAPI → Nominatim, com fallback)
 - **CRM de leads em Kanban**: funil visual com 6 estágios (Novo → Em contato → Visita agendada → Proposta → Fechado/Perdido), arrastar-e-soltar dos cards e link direto para o WhatsApp do cliente
 - Gestão de demandas de busca com marcação de "atendida"
-- **Marca d'água automática nas fotos**: todas as imagens públicas são reprocessadas pelo servidor (Pillow) com o nome da imobiliária + CRECI, redimensionadas para até 1600px e otimizadas — as originais permanecem intactas no banco
+- **Otimização automática das fotos**: as imagens públicas são servidas pelo servidor (Pillow) redimensionadas para até 1600px e re-comprimidas em JPEG otimizado — as originais permanecem intactas no banco
 - **Feeds XML para portais** (padrão VivaReal/ZAP/OLX): `/api/feed/vivareal.xml`, `/api/feed/zap.xml` e `/api/feed/olx.xml` publicam o estoque automaticamente nos portais
 - **Configurações editáveis em tempo real**: nome do site, CRECI, WhatsApp, telefone e e-mail — aplicados instantaneamente no site inteiro, sem redeploy
 - **Alteração de senha pelo próprio painel**: o hash bcrypt é gerado automaticamente pelo sistema e persistido no banco — nenhuma variável de ambiente precisa ser alterada
@@ -166,7 +166,7 @@ Variáveis de ambiente (frontend, tempo de build):
 | PUT | `/api/admin/leads/{id}/status` | JWT | Move lead no funil do CRM (Kanban) |
 | POST | `/api/demandas` | pública | Cadastro de demanda passiva ("não achou o que procura?") |
 | GET / PUT / DELETE | `/api/admin/demandas[/{id}]` | JWT | Gestão das demandas de busca |
-| GET | `/api/imoveis/{id}/fotos/{indice}` | pública | Foto com marca d'água (nome + CRECI) |
+| GET | `/api/imoveis/{id}/fotos/{indice}` | pública | Foto otimizada (redimensionada e comprimida) |
 | GET | `/api/feed/{portal}.xml` | pública | Feed XML (`vivareal`, `zap` ou `olx`) para portais |
 | GET / PUT | `/api/admin/configuracoes` | JWT* | Leitura* e edição das configurações do site |
 

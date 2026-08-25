@@ -264,7 +264,7 @@ export default function ConfiguracoesPage() {
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             Cole a URL correspondente no painel do portal para publicar seu
-            estoque automaticamente. As fotos já saem com marca d'água.
+            estoque automaticamente. As fotos já saem otimizadas.
           </p>
           <ul className="mt-4 space-y-2">
             {FEEDS.map((feed) => (

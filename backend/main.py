@@ -27,7 +27,7 @@ from config import (
 )
 from database import Base, engine, get_db
 from feed_xml import gerar_feed_portais
-from imagens import foto_com_marca
+from imagens import otimizar_foto
 from models import Configuracao, Demanda, Lead, Property
 
 logging.basicConfig(level=logging.INFO)
@@ -127,7 +127,7 @@ def servir_foto(
     indice: int,
     db: Session = Depends(get_db),
 ):
-    """Serve a foto com marca d'água (nome + CRECI) aplicada dinamicamente."""
+    """Serve a foto otimizada (redimensionada e comprimida)."""
     imovel = db.get(Property, imovel_id)
     if not imovel:
         raise HTTPException(status_code=404, detail="Imóvel não encontrado.")
@@ -135,9 +135,7 @@ def servir_foto(
     if indice < 0 or indice >= len(fotos):
         raise HTTPException(status_code=404, detail="Foto não encontrada.")
 
-    config = _config_map(db)
-    marca = f"{config['brand_name']} · {config['creci']}".strip(" ·")
-    conteudo = foto_com_marca(fotos[indice], marca)
+    conteudo = otimizar_foto(fotos[indice])
     if conteudo is None:
         raise HTTPException(status_code=404, detail="Foto inválida.")
 

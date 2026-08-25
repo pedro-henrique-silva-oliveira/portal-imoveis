@@ -2,9 +2,11 @@ import { useEffect } from 'react'
 import { Link, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import BotaoDemanda from './components/BotaoDemanda'
 import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import PropertyDetails from './pages/PropertyDetails'
+import DemandaPage from './pages/DemandaPage'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 
@@ -24,6 +26,7 @@ function LayoutPublico() {
         <Outlet />
       </main>
       <Footer />
+      <BotaoDemanda />
     </div>
   )
 }
@@ -36,6 +39,7 @@ export default function App() {
         <Route element={<LayoutPublico />}>
           <Route path="/" element={<Home />} />
           <Route path="/imovel/:id" element={<PropertyDetails />} />
+          <Route path="/demanda" element={<DemandaPage />} />
         </Route>
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route
