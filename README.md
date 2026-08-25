@@ -27,15 +27,19 @@ A marca, contatos e dados exibidos no site podem ser alterados **sem tocar no c�
 - Catálogo de imóveis com busca avançada, filtros (tipo, transação, cidade, bairro, faixa de preço, quartos), ordenação e paginação
 - Página de detalhes com galeria de fotos, ficha técnica, mapa interativo (Leaflet/OpenStreetMap) e botão flutuante de WhatsApp com mensagem pré-preenchida
 - Formulário de interesse que gera leads vinculados ao imóvel
+- **Demanda passiva**: seção "Não achou o que procura?" onde o visitante cadastra o perfil do imóvel desejado (bairro, faixa de preço, dormitórios) e é contactado pela equipe
 - Favoritos persistidos em `localStorage`
 - Banner hero responsivo com call-to-action e integração direta com WhatsApp
 
 **Painel administrativo (JWT)**
 
-- Dashboard com métricas (imóveis, vendas, locações, leads)
+- Dashboard com métricas (imóveis, vendas, locações, leads e demandas de busca)
 - CRUD completo de imóveis com upload de imagens em Base64 (até 25 fotos)
 - Geocodificação automática por CEP (AwesomeAPI → BrasilAPI → Nominatim, com fallback)
-- Gestão de leads recebidos
+- **CRM de leads em Kanban**: funil visual com 6 estágios (Novo → Em contato → Visita agendada → Proposta → Fechado/Perdido), arrastar-e-soltar dos cards e link direto para o WhatsApp do cliente
+- Gestão de demandas de busca com marcação de "atendida"
+- **Marca d'água automática nas fotos**: todas as imagens públicas são reprocessadas pelo servidor (Pillow) com o nome da imobiliária + CRECI, redimensionadas para até 1600px e otimizadas — as originais permanecem intactas no banco
+- **Feeds XML para portais** (padrão VivaReal/ZAP/OLX): `/api/feed/vivareal.xml`, `/api/feed/zap.xml` e `/api/feed/olx.xml` publicam o estoque automaticamente nos portais
 - **Configurações editáveis em tempo real**: nome do site, CRECI, WhatsApp, telefone e e-mail — aplicados instantaneamente no site inteiro, sem redeploy
 - **Alteração de senha pelo próprio painel**: o hash bcrypt é gerado automaticamente pelo sistema e persistido no banco — nenhuma variável de ambiente precisa ser alterada
 
@@ -159,6 +163,11 @@ Variáveis de ambiente (frontend, tempo de build):
 | GET | `/api/admin/metrics` | JWT | Métricas do dashboard |
 | POST | `/api/leads` | pública | Cadastro de lead de interesse |
 | GET / DELETE | `/api/admin/leads[/{id}]` | JWT | Gestão de leads |
+| PUT | `/api/admin/leads/{id}/status` | JWT | Move lead no funil do CRM (Kanban) |
+| POST | `/api/demandas` | pública | Cadastro de demanda passiva ("não achou o que procura?") |
+| GET / PUT / DELETE | `/api/admin/demandas[/{id}]` | JWT | Gestão das demandas de busca |
+| GET | `/api/imoveis/{id}/fotos/{indice}` | pública | Foto com marca d'água (nome + CRECI) |
+| GET | `/api/feed/{portal}.xml` | pública | Feed XML (`vivareal`, `zap` ou `olx`) para portais |
 | GET / PUT | `/api/admin/configuracoes` | JWT* | Leitura* e edição das configurações do site |
 
 \* A leitura usa a rota pública `/api/config`; chaves sensíveis (como hashes de senha) nunca são expostas.
