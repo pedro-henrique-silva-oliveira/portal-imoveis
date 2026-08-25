@@ -107,7 +107,7 @@ export default function PropertyDetails() {
       </Link>
 
       <div className="grid gap-8 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           <ImageGallery imovelId={imovel.id} fotos={imovel.fotos} titulo={imovel.titulo} />
 
           <div>
@@ -145,7 +145,7 @@ export default function PropertyDetails() {
 
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold">Sobre o imóvel</h2>
-            <p className="mt-2 whitespace-pre-line leading-relaxed text-slate-700">
+            <p className="mt-2 whitespace-pre-line break-words leading-relaxed text-slate-700">
               {imovel.descricao || 'Sem descrição cadastrada.'}
             </p>
 
@@ -176,7 +176,7 @@ export default function PropertyDetails() {
           </section>
         </div>
 
-        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+        <aside className="min-w-0 space-y-6 lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-3xl font-bold text-primary">{formatarBRL(imovel.preco)}</p>
             <p className="mt-1 text-sm text-slate-500">

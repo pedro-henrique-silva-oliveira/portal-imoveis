@@ -217,7 +217,7 @@ export default function AdminDashboard() {
               <CardMetrica icone={ClipboardList} rotulo="Demandas de busca" valor={demandas.length} cor="bg-amber-500" />
             </div>
 
-            <div className="mt-8 flex gap-2">
+            <div className="mt-8 -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:hidden [&]:scrollbar-width-none">
               {[
                 { id: 'imoveis', label: 'Imóveis' },
                 { id: 'leads', label: `CRM de Leads (${leads.length})` },
@@ -228,7 +228,7 @@ export default function AdminDashboard() {
                   key={item.id}
                   type="button"
                   onClick={() => setAba(item.id)}
-                  className={`flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold transition ${
+                  className={`flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold transition ${
                     aba === item.id
                       ? 'bg-primary text-white'
                       : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
